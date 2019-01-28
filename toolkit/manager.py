@@ -1,8 +1,15 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
+
+
 from .supervised_learner import SupervisedLearner
 from .baseline_learner import BaselineLearner
 from .matrix import Matrix
+from learners.perceptron_learner import PerceptronLearner
 import random
 import argparse
 import time
@@ -23,7 +30,7 @@ class MLSystemManager:
         """
         modelmap = {
             "baseline": BaselineLearner(),
-            #"perceptron": PerceptronLearner(),
+            "perceptron": PerceptronLearner(),
             #"neuralnet": NeuralNetLearner(),
             #"decisiontree": DecisionTreeLearner(),
             #"knn": InstanceBasedLearner()

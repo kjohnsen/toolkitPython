@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 
 import random
 import numpy as np
+import re
 
 def mode(a, axis=0):
 # taken from scipy code
@@ -98,15 +99,14 @@ class Matrix:
                         self.dataset_name = line[9:].strip()
                     elif line.lower().startswith("@attribute"):
                         attr_def = line[10:].strip()
-                        if attr_def[0] == "'":
-                            attr_def = attr_def[1:]
-                            attr_name = attr_def[:attr_def.index("'")]
-                            attr_def = attr_def[attr_def.index("'")+1:].strip()
+                        if '{' not in attr_def:
+                            attr_name, attr_def = attr_def.split()
                         else:
-                            search = re.search(r'(\w*)\s*({.*})', attr_def)
+                            search = re.search(r'(\w*)\s*(\{.*\})', attr_def)
+                            print(attr_def)
                             attr_name = search.group(1)
                             attr_def = search.group(2)
-                            # Remove white space from atribute values
+                            # Remove white space from attribute values
                             attr_def = "".join(attr_def.split())
 
                         self.attr_names += [attr_name]
