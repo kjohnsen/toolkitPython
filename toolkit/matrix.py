@@ -269,3 +269,14 @@ class Matrix:
             # values = list(map(lambda j: str(r[j]) if self.value_count(j) == 0 else self.enum_to_str[j][r[j]],
             #                   range(len(r))))
             print("{}".format(", ".join(values)))
+
+    def copy(self):
+        new_data = []
+        for row in self.data:
+            new_data.append(row.copy())
+        m = Matrix()
+        m.data = new_data
+        m.attr_names = self.attr_names
+        m.enum_to_str = self.enum_to_str
+        m.str_to_enum = self.str_to_enum
+        return Matrix(m, 0, 0, row_count=self.rows, col_count=self.cols)
