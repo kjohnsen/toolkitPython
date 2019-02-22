@@ -11,8 +11,8 @@ class Neuron(object):
         self.delta = None
         self.input_nodes = []
         self.output_nodes = []
-        self.input_weights = []
-        self.output_weights = []
+        self.input_cnxns = []
+        self.output_cnxns = []
         self.forward_calc = True  # set to true while going forward, false while going back for checking
     
     def calc_set_out(self):
@@ -23,7 +23,8 @@ class Neuron(object):
     @property
     def net(self):
         inputs = [n.output for n in self.input_nodes]
-        weighted_in = np.multiply(inputs, self.input_weights)
+        input_weights = [c.weight for c in self.input_cnxns]
+        weighted_in = np.multiply(inputs, input_weights)
         return np.sum(weighted_in)
 
     @property
@@ -34,13 +35,15 @@ class Neuron(object):
     def calc_set_delta(self):
         self.forward_calc = False
         deltas = [n.delta for n in self.output_nodes]
-        sum = np.sum(np.multiply(deltas, self.output_weights))
+        output_weights = [c.weight for c in self.output_cnxns]
+        sum = np.sum(np.multiply(deltas, output_weights))
         self.delta = sum * self.dout_dnet
         return self.delta
 
     def weight_change_for_node(self, i):
+        out_i = self.input_nodes[i].output
         assert self.forward_calc is False
-        return self.lr * self.input_nodes[i].output * self.delta
+        return self.lr * out_i * self.delta
 
 
 class OutputNeuron(Neuron):
@@ -52,6 +55,11 @@ class OutputNeuron(Neuron):
         self.forward_calc = False
         self.delta = (self.target - self.output) * self.dout_dnet
         return self.delta
+
+
+class InputNeuron(Neuron):
+    def set_out(self, value):
+        self.output = value
 
 
 class BiasNeuron(Neuron):

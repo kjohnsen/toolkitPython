@@ -10,6 +10,7 @@ from .supervised_learner import SupervisedLearner
 from .baseline_learner import BaselineLearner
 from .matrix import Matrix
 from learners.perceptron_learner import PerceptronLearner
+from learners.backprop_learner import BackpropLearner
 import random
 import argparse
 import time
@@ -31,7 +32,7 @@ class MLSystemManager:
         modelmap = {
             "baseline": BaselineLearner(),
             "perceptron": PerceptronLearner(),
-            #"neuralnet": NeuralNetLearner(),
+            "neuralnet": BackpropLearner(),
             #"decisiontree": DecisionTreeLearner(),
             #"knn": InstanceBasedLearner()
         }
