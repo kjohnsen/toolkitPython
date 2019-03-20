@@ -6,12 +6,13 @@ sys.path.insert(0,parentdir)
 import numpy as np
 import random
 
-from .layer import *
+from .array_layer import *
 from toolkit.supervised_learner import SupervisedLearner
 from toolkit.matrix import Matrix
 
+
 class BackpropLearner(SupervisedLearner):
-    lr = 0.1
+    lr = 0.8
     validation_set_proportion = 0.14
     
     def train(self, features, labels):
@@ -22,13 +23,11 @@ class BackpropLearner(SupervisedLearner):
         print(f'Holding out {vs_size} instances for validation set')
         train_features = Matrix(features, vs_size, 0, features.rows-vs_size, features.cols)
         train_labels = Matrix(labels, vs_size, 0, labels.rows-vs_size, labels.cols)
-        # train_features = train_features.copy()
-        # train_labels = train_labels.copy()
 
         stagnant_epochs = 0
         epochs = 0
         best_vs_mse = float('inf')
-        while stagnant_epochs < 10:
+        while stagnant_epochs < 40:
             this_train_mse = 0
             for i in range(train_features.rows):
                 inputs = train_features.row(i)
@@ -41,8 +40,8 @@ class BackpropLearner(SupervisedLearner):
             this_train_mse = this_train_mse / train_features.rows
 
             epochs += 1
-            this_vs_mse = self.calc_mse(vs_features, vs_labels)
-            print(f'Training MSE = {this_train_mse}, VS MSE = {this_vs_mse}')
+            this_vs_mse, this_vs_accy = self.calc_mse_and_accy(vs_features, vs_labels)
+            # print(f'{epochs},{this_train_mse},{this_vs_mse},{this_vs_accy}')
 
             if this_vs_mse < best_vs_mse:
                 stagnant_epochs = 0
@@ -52,23 +51,38 @@ class BackpropLearner(SupervisedLearner):
 
             train_features.shuffle(train_labels)
 
+        self.write_out(f'{epochs},{self.hidden_layers[-1].num_nb_nodes},{this_train_mse},{this_vs_mse},')
         print(f'{epochs} epochs elapsed in training')
 
 
     def predict(self, features, labels):
         del labels[:]
         self.calc_set_out(features)
-        highest_out = -float('inf')
-        for class_enum in range(self.num_classes):
-            node = self.output_layer.nodes[class_enum]
-            if node.output > highest_out:
-                highest_out = node.output
-                winner = class_enum
-        labels.append(winner)
+        labels.append(np.argmax(self.output_layer.out))  # returns index with highest number, which is the class
+
+    def measure_accuracy(self, features, labels, confusion=None):
+        if features.rows != labels.rows:
+            raise Exception("Expected the features and labels to have the same number of rows")
+        if labels.cols != 1:
+            raise Exception("Sorry, this method currently only supports one-dimensional labels")
+        if features.rows == 0:
+            raise Exception("Expected at least one row")
+
+        mse, accy = self.calc_mse_and_accy(features, labels)
+        self.write_out(str(mse) + '\n')
+
+        return accy
+
+    def write_out(self, string):
+        out_file = open('out.csv', 'a')
+        out_file.write(string)
+        out_file.close()
 
     def setup_network(self, num_feats, num_classes):
         self.input_layer = InputLayer(num_feats, self.lr)
-        self.hidden_layers = [HiddenLayer((num_feats + 1)*2, self.lr)]
+        self.hidden_layers = [HiddenLayer((num_feats), self.lr)]
+        # MULTIPLE LAYERS:
+        # self.hidden_layers.append(HiddenLayer(10, self.lr))
         self.num_classes = num_classes
         self.output_layer = OutputLayer(self.num_classes, self.lr)
         self.layers = [self.input_layer] + self.hidden_layers + [self.output_layer]
@@ -76,15 +90,18 @@ class BackpropLearner(SupervisedLearner):
             print(l)
         self.connect_layers()
 
-    def calc_mse(self, features, labels):
+    def calc_mse_and_accy(self, features, labels):
             sse = 0
+            num_correct = 0
             for i in range(features.rows):
                 inputs = features.row(i)
                 target = labels.row(i)[0]
                 self.calc_set_out(inputs)
                 self.output_layer.set_target(target)
                 sse += self.se_for_instance()
-            return sse / features.rows
+                if np.argmax(self.output_layer.out) == target:
+                    num_correct += 1
+            return sse / features.rows, num_correct/features.rows
  
 
     def calc_set_out(self, inputs):
@@ -99,7 +116,7 @@ class BackpropLearner(SupervisedLearner):
 
     def se_for_instance(self):
         ol = self.output_layer
-        result = np.subtract(ol.target_vec, ol.output_vec)
+        result = ol.target - ol.out
         result = np.square(result)
         return np.sum(result)
 
