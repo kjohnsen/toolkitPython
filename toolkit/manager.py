@@ -11,10 +11,12 @@ from .baseline_learner import BaselineLearner
 from .matrix import Matrix
 from learners.perceptron_learner import PerceptronLearner
 from learners.backprop_learner import BackpropLearner
+from learners.dtree_learner import DTreeLearner
+from learners.knn_learner import KNNLearner
 import random
 import argparse
 import time
-
+import numpy as np
 
 class MLSystemManager:
 
@@ -33,8 +35,8 @@ class MLSystemManager:
             "baseline": BaselineLearner(),
             "perceptron": PerceptronLearner(),
             "neuralnet": BackpropLearner(),
-            #"decisiontree": DecisionTreeLearner(),
-            #"knn": InstanceBasedLearner()
+            "decisiontree": DTreeLearner(),
+            "knn": KNNLearner()
         }
         if model in modelmap:
             return modelmap[model]
@@ -50,7 +52,9 @@ class MLSystemManager:
         eval_parameter = args.E[1] if len(args.E) > 1 else None
         print_confusion_matrix = args.verbose
         normalize = args.normalize
-        random.seed(args.seed) # Use a seed for deterministic results, if provided (makes debugging easier)
+        if args.seed is not None:
+            random.seed(args.seed) # Use a seed for deterministic results, if provided (makes debugging easier)
+            np.random.seed(int(args.seed))
 
         # load the model
         learner = self.get_learner(learner_name)
@@ -106,8 +110,8 @@ class MLSystemManager:
             elapsed_time = time.time() - start_time
             print("Time to train (in seconds): {}".format(elapsed_time))
 
-            train_accuracy = learner.measure_accuracy(features, labels)
-            print("Training set accuracy: {}".format(train_accuracy))
+            # train_accuracy = learner.measure_accuracy(features, labels)
+            # print("Training set accuracy: {}".format(train_accuracy))
 
             test_features = Matrix(test_data, 0, 0, test_data.rows, test_data.cols-1)
             test_labels = Matrix(test_data, 0, test_data.cols-1, test_data.rows, 1)
@@ -186,8 +190,10 @@ class MLSystemManager:
                     elapsed_time += time.time() - start_time
 
                     accuracy = learner.measure_accuracy(test_features, test_labels)
+                    # train_acc = learner.measure_accuracy(train_features, train_labels)
                     sum_accuracy += accuracy
                     print("Rep={}, Fold={}, Accuracy={}".format(j, i, accuracy))
+                    # print("Rep={}, Fold={}, Train Acc={}, Test Accuracy={}".format(j, i, train_acc, accuracy))
 
             elapsed_time /= (reps * folds)
             print("Average time to train (in seconds): {}".format(elapsed_time))

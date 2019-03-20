@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 import random
 import numpy as np
 import re
+import copy
 
 def mode(a, axis=0):
 # taken from scipy code
@@ -54,10 +55,21 @@ class Matrix:
 
     def init_from(self, matrix, row_start, col_start, row_count, col_count):
         """Initialize the matrix with a portion of another matrix"""
-        self.data = [matrix.data[row][col_start:col_start+col_count] for row in range(row_start, row_start+row_count)]
+        data = copy.deepcopy(matrix.data)
+        self.data = [data[row][col_start:col_start+col_count] for row in range(row_start, row_start+row_count)]
         self.attr_names = matrix.attr_names[col_start:col_start+col_count]
         self.str_to_enum = matrix.str_to_enum[col_start:col_start+col_count]    # array of dictionaries
         self.enum_to_str = matrix.enum_to_str[col_start:col_start+col_count]    # array of dictionaries
+        return self
+
+    def add_cols(self, matrix, row_start, col_start, row_count, col_count):
+        """Adds a matrix to the right of this one"""
+        assert self.rows == row_count
+        for i in range(self.rows):
+            self.row(i).extend(matrix.row(i)[col_start:col_start+col_count])
+            self.attr_names.extend(matrix.attr_names[col_start:col_start+col_count])
+            self.str_to_enum.extend(matrix.str_to_enum[col_start:col_start+col_count])
+            self.enum_to_str.extend(matrix.enum_to_str[col_start:col_start+col_count])
         return self
 
     def add(self, matrix, row_start, col_start, col_count):
@@ -102,7 +114,7 @@ class Matrix:
                         if '{' not in attr_def:
                             attr_name, attr_def = attr_def.split()
                         else:
-                            search = re.search(r'(\w*)\s*(\{.*\})', attr_def)
+                            search = re.search(r'(\'?[\w-]*\'?)\s*(\{.*\})', attr_def)
                             print(attr_def)
                             attr_name = search.group(1)
                             attr_def = search.group(2)
@@ -204,6 +216,12 @@ class Matrix:
         """
         return len(self.enum_to_str[col]) if len(self.enum_to_str) > 0 else 0
 
+    def count_values_present(self, col):
+        values = set()
+        for v in [row[col] for row in self.data]:
+            values.add(v)
+        return len(values)
+
     def shuffle(self, buddy=None):
         """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order."""
         if not buddy:
@@ -237,7 +255,7 @@ class Matrix:
 
     def normalize(self):
         """Normalize each column of continuous values"""
-        for i in range(self.cols):
+        for i in range(self.cols - 1):  # not for output
             if self.value_count(i) == 0:     # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)
